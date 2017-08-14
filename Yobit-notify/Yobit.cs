@@ -16,28 +16,31 @@ namespace Yobit_notify
         private string secret = "2992ec436b0023855195d679ea532518";
 
         private string apiInfoUrl = "https://yobit.net/api/3/info";
+        private string apiTicker = "https://yobit.net/api/3/ticker/";
 
 
         public Dictionary<string, YobitPair> valutes;
 
+        public List<TickerList> tickerList;
+
         public Yobit()
         {
             valutes = new Dictionary<string, YobitPair>();
+            tickerList = new List<TickerList>();
         }
 
-        private string getInfoYobitApi()
+        private string getYobitApi(string str)
         {
             using (WebClient wc = new WebClient())
             {
-                var response =  wc.DownloadString(apiInfoUrl);
+                var response =  wc.DownloadString(str);
                 return response;
             }
         }
 
         public Dictionary<string, YobitPair> getPairsList()
         {
-            //string ticker = "https://yobit.net/api/3/ticker/";
-            var json = getInfoYobitApi();
+            var json = getYobitApi(apiInfoUrl);
 
             JObject jo = JObject.Parse(json);
             JObject objResponse = (JObject)jo["pairs"];
@@ -52,18 +55,42 @@ namespace Yobit_notify
                 valutes.Add(name, item);
             }
             //ticker = ticker.Remove(ticker.Length - 1);
+            getTickerList();
             return valutes;
+        }
+
+        private void getTickerList()
+        {
+            int iterator = 0;
+            string url = apiTicker;
+            foreach (var item in valutes)
+            {
+                if(iterator <= 15)
+                {
+                    url = url + item.Key + "-";
+                    
+                }
+                iterator++;
+                if (iterator == 15)
+                {
+                    url = url.Remove(url.Length - 1);
+                    var json = getYobitApi(url);
+                    iterator = 0;
+                    url = apiTicker;
+                }
+                
+            }
         }
 
     }
 
+    public class TickerList
+    {
+        public string Name { get; set; }
+        public double CurrentPrice { get; set; }
+    }
 
-
-    //public class YobitInfo
-    //{
-    //    public string server_time { get; set; }
-    //    public List<YobitPair> pairs { get; set; }
-    //}
+    
 
     public class RootObject
     {
@@ -89,5 +116,6 @@ namespace Yobit_notify
         public double fee_buyer { get; set; }
         public double fee_seller { get; set; }
     }
+    
 }
 
